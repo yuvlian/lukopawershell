@@ -1,6 +1,38 @@
 using namespace System.Collections.Generic
 using namespace System.Text
 using namespace System.Net
+using namespace System
+
+$FieldNums = [Dictionary[string, int32]]::new()
+
+$FieldNumsPath = "fieldnums.txt"
+if (-not (Test-Path $FieldNumsPath)) {
+    Write-Error "File not found: $FieldNumsPath"
+    return
+}
+foreach ($line in Get-Content $FieldNumsPath) {
+    $line = $line.Trim()
+    if ($line -eq "" -or $line.StartsWith("#") -or $line.StartsWith("//")) {
+        continue
+    }
+    $parts = $line -split "="
+    if ($parts.Count -ne 2) {
+        continue
+    }
+    $key = $parts[0].Trim()
+    $value = [int32]($parts[1].Trim())
+    $FieldNums[$key] = $value
+}
+
+function Get-FieldNum {
+    param([string] $Key)
+
+    if (-not $FieldNums.ContainsKey($Key)) {
+        throw "$Key not found in fieldnums"
+    }
+
+    return $FieldNums[$Key]
+}
 
 class ProtoWriter {
     [List[byte]] $Buffer
@@ -67,12 +99,21 @@ class ProtoWriter {
 }
 
 class RegionInfo {
-    static [int] $FIELD_name = 1
-    static [int] $FIELD_title = 2
-    static [int] $FIELD_dispatch_url = 3
-    static [int] $FIELD_env_type = 4
-    static [int] $FIELD_display_name = 5
-    static [int] $FIELD_msg = 6
+    static [int] $FIELD_name
+    static [int] $FIELD_title
+    static [int] $FIELD_dispatch_url
+    static [int] $FIELD_env_type
+    static [int] $FIELD_display_name
+    static [int] $FIELD_msg
+
+    static InitFieldNum() {
+        [RegionInfo]::FIELD_name = Get-FieldNum "RegionInfo.name"
+        [RegionInfo]::FIELD_title = Get-FieldNum "RegionInfo.title"
+        [RegionInfo]::FIELD_dispatch_url = Get-FieldNum "RegionInfo.dispatch_url"
+        [RegionInfo]::FIELD_env_type = Get-FieldNum "RegionInfo.env_type"
+        [RegionInfo]::FIELD_display_name = Get-FieldNum "RegionInfo.display_name"
+        [RegionInfo]::FIELD_msg = Get-FieldNum "RegionInfo.msg"
+    }
 
     [string] $name
     [string] $title
@@ -96,14 +137,22 @@ class RegionInfo {
         return $w.GetBytes()
     }
 }
-
+[RegionInfo]::InitFieldNum()
 
 class Dispatch {
-    static [int] $FIELD_retcode = 1
-    static [int] $FIELD_msg = 2
-    static [int] $FIELD_top_server_region = 3
-    static [int] $FIELD_region_list = 4
-    static [int] $FIELD_stop_desc = 5
+    static [int] $FIELD_retcode
+    static [int] $FIELD_msg
+    static [int] $FIELD_top_server_region
+    static [int] $FIELD_region_list
+    static [int] $FIELD_stop_desc
+
+    static InitFieldNum() {
+        [Dispatch]::FIELD_retcode = Get-FieldNum "Dispatch.retcode"
+        [Dispatch]::FIELD_msg = Get-FieldNum "Dispatch.msg"
+        [Dispatch]::FIELD_top_server_region = Get-FieldNum "Dispatch.top_server_region"
+        [Dispatch]::FIELD_region_list = Get-FieldNum "Dispatch.region_list"
+        [Dispatch]::FIELD_stop_desc = Get-FieldNum "Dispatch.stop_desc"
+    }
 
     [UInt32] $retcode
     [string] $msg
@@ -132,31 +181,58 @@ class Dispatch {
         return $w.GetBytes()
     }
 }
+[Dispatch]::InitFieldNum()
 
 class GateServer {
-    static [int] $FIELD_region_name = 5
-    static [int] $FIELD_ip = 6
-    static [int] $FIELD_unk1 = 8
-    static [int] $FIELD_lua_url = 9
-    static [int] $FIELD_ex_resource_url = 10
-    static [int] $FIELD_unk2 = 11
-    static [int] $FIELD_asset_bundle_url = 12
-    static [int] $FIELD_port = 13
-    static [int] $FIELD_unk3 = 164
-    static [int] $FIELD_unk4 = 298
-    static [int] $FIELD_unk5 = 644
-    static [int] $FIELD_unk6 = 783
-    static [int] $FIELD_client_secret_key = 936
-    static [int] $FIELD_msg = 988
-    static [int] $FIELD_unk7 = 1000
-    static [int] $FIELD_unk8 = 1141
-    static [int] $FIELD_asset_bundle_url_android = 1421
-    static [int] $FIELD_unk9 = 1750
-    static [int] $FIELD_ifix_url = 1813
-    static [int] $FIELD_unk10 = 1983
-    static [int] $FIELD_ifix_version = 652
-    static [int] $FIELD_mdk_res_version = 1150
-    static [int] $FIELD_use_tcp = 1759
+    static [int] $FIELD_region_name
+    static [int] $FIELD_ip
+    static [int] $FIELD_unk1
+    static [int] $FIELD_lua_url
+    static [int] $FIELD_ex_resource_url
+    static [int] $FIELD_unk2
+    static [int] $FIELD_asset_bundle_url
+    static [int] $FIELD_port
+    static [int] $FIELD_unk3
+    static [int] $FIELD_unk4
+    static [int] $FIELD_unk5
+    static [int] $FIELD_unk6
+    static [int] $FIELD_client_secret_key
+    static [int] $FIELD_msg
+    static [int] $FIELD_unk7
+    static [int] $FIELD_unk8
+    static [int] $FIELD_asset_bundle_url_android
+    static [int] $FIELD_unk9
+    static [int] $FIELD_ifix_url
+    static [int] $FIELD_unk10
+    static [int] $FIELD_ifix_version
+    static [int] $FIELD_mdk_res_version
+    static [int] $FIELD_use_tcp
+
+    static InitFieldNum() {
+        [GateServer]::FIELD_region_name = Get-FieldNum "GateServer.region_name"
+        [GateServer]::FIELD_ip = Get-FieldNum "GateServer.ip"
+        [GateServer]::FIELD_unk1 = Get-FieldNum "GateServer.unk1"
+        [GateServer]::FIELD_lua_url = Get-FieldNum "GateServer.lua_url"
+        [GateServer]::FIELD_ex_resource_url = Get-FieldNum "GateServer.ex_resource_url"
+        [GateServer]::FIELD_unk2 = Get-FieldNum "GateServer.unk2"
+        [GateServer]::FIELD_asset_bundle_url = Get-FieldNum "GateServer.asset_bundle_url"
+        [GateServer]::FIELD_port = Get-FieldNum "GateServer.port"
+        [GateServer]::FIELD_unk3 = Get-FieldNum "GateServer.unk3"
+        [GateServer]::FIELD_unk4 = Get-FieldNum "GateServer.unk4"
+        [GateServer]::FIELD_unk5 = Get-FieldNum "GateServer.unk5"
+        [GateServer]::FIELD_unk6 = Get-FieldNum "GateServer.unk6"
+        [GateServer]::FIELD_client_secret_key = Get-FieldNum "GateServer.client_secret_key"
+        [GateServer]::FIELD_msg = Get-FieldNum "GateServer.msg"
+        [GateServer]::FIELD_unk7 = Get-FieldNum "GateServer.unk7"
+        [GateServer]::FIELD_unk8 = Get-FieldNum "GateServer.unk8"
+        [GateServer]::FIELD_asset_bundle_url_android = Get-FieldNum "GateServer.asset_bundle_url_android"
+        [GateServer]::FIELD_unk9 = Get-FieldNum "GateServer.unk9"
+        [GateServer]::FIELD_ifix_url = Get-FieldNum "GateServer.ifix_url"
+        [GateServer]::FIELD_unk10 = Get-FieldNum "GateServer.unk10"
+        [GateServer]::FIELD_ifix_version = Get-FieldNum "GateServer.ifix_version"
+        [GateServer]::FIELD_mdk_res_version = Get-FieldNum "GateServer.mdk_res_version"
+        [GateServer]::FIELD_use_tcp = Get-FieldNum "GateServer.use_tcp"
+    }
 
     [string] $region_name
     [string] $ip
@@ -214,6 +290,7 @@ class GateServer {
         return $w.GetBytes()
     }
 }
+[GateServer]::InitFieldNum()
 
 function Write-HttpResponse {
     param(
@@ -409,9 +486,6 @@ while ($sdkserver.IsListening) {
                 Write-HttpResponse -Response $res -Body "not found" -StatusCode 404
             }
         }
-    }
-    catch [System.ObjectDisposedException] {
-        break
     }
     catch {
         Write-Host "sdkserver error: $($_.Exception.Message)"

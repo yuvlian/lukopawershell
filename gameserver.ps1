@@ -3,6 +3,7 @@ using namespace System.Text
 using namespace System.Net
 using namespace System.Net.Sockets
 using namespace System.IO
+using namespace System
 
 function read_u16_be([byte[]] $b) {
     return ($b[0] -shl 8) -bor $b[1]
@@ -113,6 +114,37 @@ class Packet {
     }
 }
 
+$FieldNums = [Dictionary[string, int32]]::new()
+
+$FieldNumsPath = "fieldnums.txt"
+if (-not (Test-Path $FieldNumsPath)) {
+    Write-Error "File not found: $FieldNumsPath"
+    return
+}
+foreach ($line in Get-Content $FieldNumsPath) {
+    $line = $line.Trim()
+    if ($line -eq "" -or $line.StartsWith("#") -or $line.StartsWith("//")) {
+        continue
+    }
+    $parts = $line -split "="
+    if ($parts.Count -ne 2) {
+        continue
+    }
+    $key = $parts[0].Trim()
+    $value = [int32]($parts[1].Trim())
+    $FieldNums[$key] = $value
+}
+
+function Get-FieldNum {
+    param([string] $Key)
+
+    if (-not $FieldNums.ContainsKey($Key)) {
+        throw "$Key not found in fieldnums"
+    }
+
+    return $FieldNums[$Key]
+}
+
 class ProtoWriter {
     [List[byte]] $Buffer
     [HashSet[Int32]] $UsedFields
@@ -179,10 +211,10 @@ class ProtoWriter {
 
 $gameserver = [TcpListener]::new(
     [IPAddress]::Parse("127.0.0.1"),
-    22102
+    23301
 )
 $gameserver.Start()
-Write-Host "gameserver @ http://localhost:21000/"
+Write-Host "gameserver @ http://localhost:23301/"
 
 while ($true) {
     $client = $gameserver.AcceptTcpClient()
