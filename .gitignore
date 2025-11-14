@@ -1,0 +1,5 @@
+*.py
+*.cs
+*.proto
+*.go
+cmdids.ps1
