@@ -165,7 +165,7 @@ class Dispatch {
     [byte[]] Encode() {
         $w = [ProtoWriter]::new()
 
-        if ($this.retcode -gt 0) { $w.WriteUInt32([Dispatch]::FIELD_retcode, $this.retcode, $false) }
+        if ($this.retcode) { $w.WriteUInt32([Dispatch]::FIELD_retcode, $this.retcode, $false) }
         if ($this.msg) { $w.WriteString([Dispatch]::FIELD_msg, $this.msg, $false) }
         if ($this.top_sever_region_name) { 
             $w.WriteString([Dispatch]::FIELD_top_server_region, $this.top_sever_region_name, $false) 
@@ -270,7 +270,7 @@ class GateServer {
         if ($this.ex_resource_url) { $w.WriteString([GateServer]::FIELD_ex_resource_url, $this.ex_resource_url, $false) }
         if ($this.unk2) { $w.WriteBool([GateServer]::FIELD_unk2, $this.unk2, $false) }
         if ($this.asset_bundle_url) { $w.WriteString([GateServer]::FIELD_asset_bundle_url, $this.asset_bundle_url, $false) }
-        if ($this.port -gt 0) { $w.WriteUInt32([GateServer]::FIELD_port, $this.port, $false) }
+        if ($this.port) { $w.WriteUInt32([GateServer]::FIELD_port, $this.port, $false) }
         if ($this.unk3) { $w.WriteBool([GateServer]::FIELD_unk3, $this.unk3, $false) }
         if ($this.unk4) { $w.WriteBool([GateServer]::FIELD_unk4, $this.unk4, $false) }
         if ($this.unk5) { $w.WriteBool([GateServer]::FIELD_unk5, $this.unk5, $false) }

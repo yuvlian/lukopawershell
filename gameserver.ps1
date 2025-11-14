@@ -22,9 +22,9 @@ function read_u16_be([byte[]]$b) {
 
 function read_u32_be([byte[]]$b) {
     return ([uint32]$b[0] -shl 24) -bor
-           ([uint32]$b[1] -shl 16) -bor
-           ([uint32]$b[2] -shl 8) -bor
-           $b[3]
+    ([uint32]$b[1] -shl 16) -bor
+    ([uint32]$b[2] -shl 8) -bor
+    $b[3]
 }
 
 function write_u16_be([uint16]$v) {
@@ -67,7 +67,7 @@ class Packet {
             }
         }
 
-        $ccmd      = read_u16_be $header[4..5]
+        $ccmd = read_u16_be $header[4..5]
         $head_len = read_u16_be $header[6..7]
         $body_len = read_u32_be $header[8..11]
 
@@ -199,6 +199,11 @@ class ProtoWriter {
         $this.WriteVarint([UInt64]$tag)
     }
 
+    [void] WriteUInt64([Int32] $fieldNumber, [UInt64] $value, [bool] $repeated) {
+        $this.CheckField($fieldNumber, 0, $repeated)
+        $this.WriteVarint($value)
+    }
+
     [void] WriteUInt32([Int32] $fieldNumber, [UInt32] $value, [bool] $repeated) {
         $this.CheckField($fieldNumber, 0, $repeated)
         $this.WriteVarint([UInt64]$value)
@@ -261,6 +266,117 @@ $DummyMap[ (Get-FieldNum "CmdId.GetBagCsReq") ] = (Get-FieldNum "CmdId.GetBagScR
 $DummyMap[ (Get-FieldNum "CmdId.PlayerLoginFinishCsReq") ] = (Get-FieldNum "CmdId.PlayerLoginFinishScRsp")
 $DummyMap[ (Get-FieldNum "CmdId.SceneEntityMoveCsReq") ] = (Get-FieldNum "CmdId.SceneEntityMoveScRsp")
 
+class Avatar {
+    static [int] $FIELD_unk_enhanced_id
+    static [int] $FIELD_promotion
+    static [int] $FIELD_level
+    static [int] $FIELD_rank
+    static [int] $FIELD_base_avatar_id
+    static [int] $FIELD_first_met_time_stamp
+
+    static InitFieldNum() {
+        [Avatar]::FIELD_unk_enhanced_id = Get-FieldNum "Avatar.unk_enhanced_id"
+        [Avatar]::FIELD_promotion = Get-FieldNum "Avatar.promotion"
+        [Avatar]::FIELD_level = Get-FieldNum "Avatar.level"
+        [Avatar]::FIELD_rank = Get-FieldNum "Avatar.rank"
+        [Avatar]::FIELD_base_avatar_id = Get-FieldNum "Avatar.base_avatar_id"
+        [Avatar]::FIELD_first_met_time_stamp = Get-FieldNum "Avatar.first_met_time_stamp"
+    }
+
+    [uint32] $unk_enhanced_id
+    [uint32] $promotion
+    [uint32] $level
+    [uint32] $rank
+    [uint32] $base_avatar_id
+    [uint64] $first_met_time_stamp
+
+    Avatar() { }
+
+    [byte[]] Encode() {
+        $w = [ProtoWriter]::new()
+
+        if ($this.unk_enhanced_id) { $w.WriteUInt32([Avatar]::FIELD_unk_enhanced_id, $this.unk_enhanced_id, $false) }
+        if ($this.promotion) { $w.WriteUInt32([Avatar]::FIELD_promotion, $this.promotion, $false) }
+        if ($this.level) { $w.WriteUInt32([Avatar]::FIELD_level, $this.level, $false) }
+        if ($this.rank) { $w.WriteUInt32([Avatar]::FIELD_rank, $this.rank, $false) }
+        if ($this.base_avatar_id) { $w.WriteUInt32([Avatar]::FIELD_base_avatar_id, $this.base_avatar_id, $false) }
+        if ($this.first_met_time_stamp) { $w.WriteUInt64([Avatar]::FIELD_first_met_time_stamp, $this.first_met_time_stamp, $false) }
+
+        return $w.GetBytes()
+    }
+}
+[Avatar]::InitFieldNum()
+
+class GetAvatarDataScRsp {
+    static [int] $FIELD_avatar_list
+    static [int] $FIELD_is_get_all
+
+    static InitFieldNum() {
+        [GetAvatarDataScRsp]::FIELD_avatar_list = Get-FieldNum "GetAvatarDataScRsp.avatar_list"
+        [GetAvatarDataScRsp]::FIELD_is_get_all = Get-FieldNum "GetAvatarDataScRsp.is_get_all"
+    }
+
+    [List[Avatar]] $avatar_list
+    [bool] $is_get_all
+
+    GetAvatarDataScRsp() { }
+
+    [byte[]] Encode() {
+        $w = [ProtoWriter]::new()
+        if ($this.avatar_list) {
+            foreach ($avatar in $this.avatar_list) {
+                $bytes = $avatar.Encode()
+                $w.WriteMessage([GetAvatarDataScRsp]::FIELD_avatar_list, $bytes, $true)
+            }
+        }
+        if ($this.is_get_all) { $w.WriteBool([GetAvatarDataScRsp]::FIELD_is_get_all, $this.is_get_all, $false) }
+        return $w.GetBytes()
+    }
+}
+[GetAvatarDataScRsp]::InitFieldNum()
+
+function Write-PacketResponse {
+    param(
+        [pscustomobject] $ctx,
+        [uint16] $cmd_id,
+        [byte[]] $body
+    )
+
+    $resp = [Packet]::new($cmd_id, [byte[]]@(), $body)
+    $encoded = $resp.encode()
+    $ctx.stream.Write($encoded, 0, $encoded.Length)
+}
+
+function Write-RawResponse {
+    param(
+        [pscustomobject] $ctx,
+        [byte[]] $bytes
+    )
+
+    $ctx.stream.Write($bytes, 0, $bytes.Length)
+}
+
+$HandlerMap = @{}
+$HandlerMap[[uint16](Get-FieldNum "CmdId.GetAvatarDataCsReq")] = {
+    param([pscustomobject] $ctx)
+
+    $rsp = [GetAvatarDataScRsp]::new()
+    $rsp.is_get_all = $true
+    $rsp.avatar_list = [List[Avatar]]::new()
+
+    $av = [Avatar]::new()
+    $av.base_avatar_id = 1201
+    $av.unk_enhanced_id = 0
+    $av.promotion = 6
+    $av.level = 80
+    $av.rank = 6
+    $av.first_met_time_stamp = [uint64]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())
+
+    $rsp.avatar_list.Add($av)
+
+    Write-PacketResponse $ctx (Get-FieldNum "CmdId.GetAvatarDataScRsp") ($rsp.Encode())
+}
+
 $gameserver = [TcpListener]::new(
     [IPAddress]::Parse("127.0.0.1"),
     23301
@@ -293,10 +409,18 @@ while ($true) {
                 $encoded = $packet.encode()
                 $stream.Write($encoded, 0, $encoded.Length)
                 Write-Host "dummy'd" $packet.cmd
+                continue
             }
-            else {
+            if ($HandlerMap.ContainsKey($packet.cmd)) {
                 Write-Host "handled" $packet.cmd
+                $HandlerMap[$packet.cmd].Invoke([pscustomobject]@{
+                        client = $client
+                        stream = $stream
+                        packet = $packet
+                    })
+                continue
             }
+            Write-Host "ignored" $packet.cmd
         }
     }
     finally {

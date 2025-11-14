@@ -130,3 +130,16 @@ CmdId.PlayerLoginFinishScRsp=53
 
 CmdId.SceneEntityMoveCsReq=1447
 CmdId.SceneEntityMoveScRsp=1409
+
+CmdId.GetAvatarDataCsReq=347
+CmdId.GetAvatarDataScRsp=309
+
+Avatar.unk_enhanced_id=12
+Avatar.promotion=3
+Avatar.level=2
+Avatar.rank=14
+Avatar.base_avatar_id=9
+Avatar.first_met_time_stamp=11
+
+GetAvatarDataScRsp.avatar_list=1
+GetAvatarDataScRsp.is_get_all=9
