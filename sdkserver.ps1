@@ -292,19 +292,6 @@ class GateServer {
 }
 [GateServer]::InitFieldNum()
 
-function Write-HttpResponse {
-    param(
-        [HttpListenerResponse] $Response,
-        [string] $Body,
-        [UInt16] $StatusCode
-    )
-    $bytes = [Encoding]::UTF8.GetBytes($Body)
-    $Response.StatusCode = $StatusCode
-    $Response.ContentLength64 = $bytes.Length
-    $Response.OutputStream.Write($bytes, 0, $bytes.Length)
-    $Response.OutputStream.Close()
-}
-
 function HandleRiskyCheck {
     return @'
 {
@@ -431,13 +418,29 @@ function HandleQueryGateway {
     $buf = $gs.Encode()
     return [Convert]::ToBase64String($buf)
 }
+function Write-HttpResponse {
+    param(
+        [HttpListenerResponse] $Response,
+        [string] $Body,
+        [UInt16] $StatusCode,
+        [string] $ContentType
+    )
+    $bytes = [Encoding]::UTF8.GetBytes($Body)
+    $Response.KeepAlive = $true
+    $Response.Headers["Content-Type"] = $ContentType
+    $Response.StatusCode = $StatusCode
+    $Response.ContentLength64 = $bytes.Length
+    $Response.OutputStream.Write($bytes, 0, $bytes.Length)
+    $Response.OutputStream.Flush()
+    $Response.Close()
+}
 
 $sdkserver = [HttpListener]::new()
-$sdkserver.Prefixes.Add("http://localhost:21000/")
+$sdkserver.Prefixes.Add("http://127.0.0.1:21000/")
 
 try {
     $sdkserver.Start()
-    Write-Host "sdkserver @ http://localhost:21000/"
+    Write-Host "sdkserver @ http://127.0.0.1:21000/"
 }
 catch {
     Write-Error "failed to start sdkserver: $($_.Exception.Message)"
@@ -450,40 +453,45 @@ while ($sdkserver.IsListening) {
         $req = $ctx.Request
         $res = $ctx.Response
 
+        try {
+            $reader = New-Object StreamReader($req.InputStream)
+            [void]$reader.ReadToEnd()
+        } catch {}
+
         $route = $req.Url.AbsolutePath
         Write-Host "route hit: $route"
 
         switch ($route) {
             "/query_dispatch" {
-                Write-HttpResponse -Response $res -Body (HandleQueryDispatch) -StatusCode 200
+                Write-HttpResponse $res (HandleQueryDispatch) 200 "text/plain"
                 break
             }
             "/query_gateway" {
-                Write-HttpResponse -Response $res -Body (HandleQueryGateway) -StatusCode 200
+                Write-HttpResponse $res (HandleQueryGateway) 200 "text/plain"
                 break
             }
             "/account/risky/api/check" {
-                Write-HttpResponse -Response $res -Body (HandleRiskyCheck) -StatusCode 200
+                Write-HttpResponse $res (HandleRiskyCheck) 200 "application/json"
                 break
             }
             "/hkrpg_global/combo/granter/login/v2/login" {
-                Write-HttpResponse -Response $res -Body (HandleTokenLogin) -StatusCode 200
+                Write-HttpResponse $res (HandleTokenLogin) 200 "application/json"
                 break
             }
             "/hkrpg_global/account/ma-passport/api/appLoginByPassword" {
-                Write-HttpResponse -Response $res -Body (HandlePasswordLogin) -StatusCode 200
+                Write-HttpResponse $res (HandlePasswordLogin) 200 "application/json"
                 break
             }
             "/hkrpg_global/mdk/shield/api/login" {
-                Write-HttpResponse -Response $res -Body (HandleShieldThings) -StatusCode 200
+                Write-HttpResponse $res (HandleShieldThings) 200 "application/json"
                 break
             }
             "/hkrpg_global/mdk/shield/api/verify" {
-                Write-HttpResponse -Response $res -Body (HandleShieldThings) -StatusCode 200
+                Write-HttpResponse $res (HandleShieldThings) 200 "application/json"
                 break
             }
             default {
-                Write-HttpResponse -Response $res -Body "not found" -StatusCode 404
+                Write-HttpResponse $res "not found" 404 "text/plain"
             }
         }
     }

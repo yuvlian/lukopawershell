@@ -143,3 +143,17 @@ Avatar.first_met_time_stamp=11
 
 GetAvatarDataScRsp.avatar_list=1
 GetAvatarDataScRsp.is_get_all=9
+
+CmdId.GetAllLineupDataCsReq=767
+
+CmdId.GetCurLineupDataCsReq=738
+
+CmdId.GetMissionStatusCsReq=1267
+
+CmdId.PlayerGetTokenCsReq=51
+
+CmdId.PlayerHeartBeatCsReq=39
+
+CmdId.PlayerLoginCsReq=47
+
+CmdId.GetCurSceneInfoCsReq=1489

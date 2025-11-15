@@ -1,3 +1,5 @@
+<img src="Capture.PNG" alt="ss" width="70%">
+
 why install python, rust, nodejs, when you can just use powershell--which is built into windows, right?
 
 anyways uh if you're dropped as a baby like me and actually wants to use this, u just need to update `fieldnums.txt`...
@@ -7,3 +9,5 @@ anyways uh if you're dropped as a baby like me and actually wants to use this, u
 i make every single proto class manually so i got lazy after that one
 
 i think sdkserver is pretty useful since nobody wants to recompile sdkserver all the time
+
+oh and i guess this server showcases the bare minimum to enter map
